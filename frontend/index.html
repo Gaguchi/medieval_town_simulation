@@ -11,56 +11,66 @@
         <h1>Medieval Town Simulation</h1>
         
         <div class="simulation-layout">
-            <div class="market-controls">
-                <div class="entity inventory-status">
-                    <h3>Current Inventories</h3>
-                    <div class="inventory-row">
-                        <div>
-                            <strong>Town:</strong>
-                            <p>Wheat: <span id="town-wheat">50</span></p>
-                            <p>Tools: <span id="town-tools">0</span></p>
-                        </div>
-                        <div>
-                            <strong>Village:</strong>
-                            <p>Wheat: <span id="village-wheat">0</span></p>
-                            <p>Tools: <span id="village-tools">50</span></p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="entity">
-                    <h3>Depletion Rates</h3>
-                    <div class="control-group">
-                        <label>Wheat: <input type="range" id="wheat-depletion" min="0" max="5" step="0.1" value="1"></label>
-                        <label>Tools: <input type="range" id="tools-depletion" min="0" max="5" step="0.1" value="1"></label>
-                    </div>
-                </div>
-
-                <div class="entity">
-                    <h3>Town Market</h3>
-                    <div class="control-group">
-                        <label>Wheat Demand: <input type="range" id="wheat-demand" min="0" max="100" value="50"></label>
-                        <label>Wheat Supply: <input type="range" id="wheat-supply" min="0" max="100" value="50"></label>
-                        <p>Wheat Price: <span id="wheat-price">10.0</span></p>
-                    </div>
-                </div>
-
-                <div class="entity">
-                    <h3>Village Market</h3>
-                    <div class="control-group">
-                        <label>Tools Demand: <input type="range" id="tools-demand" min="0" max="100" value="50"></label>
-                        <label>Tools Supply: <input type="range" id="tools-supply" min="0" max="100" value="50"></label>
-                        <p>Tools Price: <span id="tools-price">10.0</span></p>
-                    </div>
-                </div>
-
-                <div class="entity">
-                    <h3>Market Controls</h3>
-                    <div class="control-group">
-                        <label>Supply Ratio: <input type="range" id="supply-ratio" min="0" max="100" value="50"></label>
-                    </div>
-                </div>
+            <!-- Add new money distribution chart -->
+            <div class="money-distribution">
+                <h3>Economic Distribution</h3>
+                <div id="money-chart"></div>
             </div>
+
+            <!-- Wrap market controls in collapsible section -->
+            <details class="advanced-controls">
+                <summary>Advanced Market Controls</summary>
+                <div class="market-controls">
+                    <div class="entity inventory-status">
+                        <h3>Current Inventories</h3>
+                        <div class="inventory-row">
+                            <div>
+                                <strong>Town:</strong>
+                                <p>Wheat: <span id="town-wheat">50</span></p>
+                                <p>Tools: <span id="town-tools">0</span></p>
+                            </div>
+                            <div>
+                                <strong>Village:</strong>
+                                <p>Wheat: <span id="village-wheat">0</span></p>
+                                <p>Tools: <span id="village-tools">50</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="entity">
+                        <h3>Depletion Rates</h3>
+                        <div class="control-group">
+                            <label>Wheat: <input type="range" id="wheat-depletion" min="0" max="5" step="0.1" value="1"></label>
+                            <label>Tools: <input type="range" id="tools-depletion" min="0" max="5" step="0.1" value="1"></label>
+                        </div>
+                    </div>
+
+                    <div class="entity">
+                        <h3>Town Market</h3>
+                        <div class="control-group">
+                            <label>Wheat Demand: <input type="range" id="wheat-demand" min="0" max="100" value="50"></label>
+                            <label>Wheat Supply: <input type="range" id="wheat-supply" min="0" max="100" value="50"></label>
+                            <p>Wheat Price: <span id="wheat-price">10.0</span></p>
+                        </div>
+                    </div>
+
+                    <div class="entity">
+                        <h3>Village Market</h3>
+                        <div class="control-group">
+                            <label>Tools Demand: <input type="range" id="tools-demand" min="0" max="100" value="50"></label>
+                            <label>Tools Supply: <input type="range" id="tools-supply" min="0" max="100" value="50"></label>
+                            <p>Tools Price: <span id="tools-price">10.0</span></p>
+                        </div>
+                    </div>
+
+                    <div class="entity">
+                        <h3>Market Controls</h3>
+                        <div class="control-group">
+                            <label>Supply Ratio: <input type="range" id="supply-ratio" min="0" max="100" value="50"></label>
+                        </div>
+                    </div>
+                </div>
+            </details>
 
             <div class="simulation-view">
                 <canvas id="simulation-canvas" width="600" height="600"></canvas>

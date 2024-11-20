@@ -62,6 +62,14 @@ class Simulation {
 
         // Add this line after other initializations
         this.maxActiveVillagers = 2;  // Maximum number of concurrent villagers allowed
+
+        // Set fixed total money in the system
+        const TOTAL_MONEY = 2000;
+        this.townInventory.money = TOTAL_MONEY * 0.4;  // 40% to town
+        this.villageInventory.money = TOTAL_MONEY * 0.4;  // 40% to village
+        this.trader.inventory.money = TOTAL_MONEY * 0.2;  // 20% to trader
+
+        this.updateMoneyDistribution();
     }
 
     setupEventListeners() {
@@ -254,6 +262,8 @@ class Simulation {
             }
             this.updateLocationInfo();
 
+            this.updateMoneyDistribution();
+
         } catch (error) {
             console.error('Error in simulation update:', error);
         }
@@ -305,6 +315,10 @@ class Simulation {
                 wheatPrice,
                 toolsPrice
             );
+
+            const tradeValue = villager.wheatAmount * wheatPrice;
+            this.townInventory.money += tradeValue;
+            this.villageInventory.money -= tradeValue;
         }
     }
 
@@ -431,6 +445,30 @@ class Simulation {
             parseFloat(document.getElementById('wheat-price').textContent),
             parseFloat(document.getElementById('tools-price').textContent)
         );
+    }
+
+    updateMoneyDistribution() {
+        const moneyChart = document.getElementById('money-chart');
+        const entities = [
+            { name: 'Town', money: this.townInventory.money },
+            { name: 'Village', money: this.villageInventory.money },
+            { name: 'Trader', money: this.trader.inventory.money }
+        ];
+
+        // Sort by money amount
+        entities.sort((a, b) => b.money - a.money);
+
+        // Calculate total money for percentage
+        const totalMoney = entities.reduce((sum, entity) => sum + entity.money, 0);
+
+        // Update chart
+        moneyChart.innerHTML = entities.map(entity => `
+            <div class="money-bar">
+                <div class="money-bar-fill" style="width: ${(entity.money / totalMoney * 100)}%">
+                    <span class="money-bar-label">${entity.name}: ${entity.money.toFixed(1)} coins</span>
+                </div>
+            </div>
+        `).join('');
     }
 }
 
