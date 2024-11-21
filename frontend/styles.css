@@ -218,3 +218,212 @@
 .advanced-controls[open] .market-controls {
     display: flex;
 }
+
+/* Combat Styles */
+.combat-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.combat-scene {
+    width: 800px;
+    height: 600px;
+    background: #2c3e50;
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding: 20px;
+    gap: 20px;
+}
+
+.combat-units {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+}
+
+.combat-log {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    width: 250px;
+    height: 400px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #fff;
+    color: white;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.log-content {
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.log-entry {
+    padding: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 14px;
+}
+
+.log-entry:first-child {
+    border-bottom: none;
+}
+
+#auto-fight-btn {
+    background: #27ae60;
+}
+
+#auto-fight-btn:hover {
+    background: #219a52;
+}
+
+#auto-fight-btn:disabled {
+    background: #95a5a6;
+}
+
+.combat-scene {
+    width: 800px;
+    height: 400px;
+    background: #2c3e50;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.combat-unit {
+    width: 120px;
+    height: 120px;
+    position: relative;
+}
+
+.unit-sprite {
+    width: 100%;
+    height: 100%;
+    background: #34495e;
+    border: 2px solid #fff;
+}
+
+.unit-stats {
+    position: absolute;
+    top: -60px;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px;
+    font-size: 14px;
+}
+
+.combat-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+}
+
+.combat-button {
+    padding: 10px 20px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.combat-button:hover {
+    background: #c0392b;
+}
+
+.attack-animation {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.damage-number {
+    position: absolute;
+    color: #e74c3c;
+    font-size: 24px;
+    font-weight: bold;
+    animation: damageFloat 1s ease-out forwards;
+}
+
+@keyframes damageFloat {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-30px); opacity: 0; }
+}
+
+.health-bar {
+    width: 100%;
+    height: 10px;
+    background: #c0392b;
+    margin-top: 5px;
+}
+
+.health-bar-fill {
+    height: 100%;
+    background: #27ae60;
+    transition: width 0.3s ease;
+}
+
+.accounting-panel {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.accounting-current table,
+.accounting-history table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+.accounting-current td,
+.accounting-history td,
+.accounting-history th {
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.accounting-history th {
+    background: #f5f5f5;
+    font-weight: bold;
+    text-align: left;
+}
+
+.positive {
+    color: #27ae60;
+}
+
+.negative {
+    color: #e74c3c;
+}
+
+.net-flow td {
+    border-top: 2px solid #eee;
+    font-weight: bold;
+}
+
+.accounting-current h4,
+.accounting-history h4 {
+    margin: 10px 0;
+    color: #2c3e50;
+}

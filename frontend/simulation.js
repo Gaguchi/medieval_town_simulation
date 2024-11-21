@@ -52,7 +52,7 @@ class Simulation {
         this.smithTimers = this.townSmiths.map(smith => 0);
 
         // Setup UI elements with error handling
-        this.setupTradeLog();
+        this.setupUI();
         this.setupInventoryControls();
         this.setupEventListeners();
         
@@ -70,6 +70,53 @@ class Simulation {
         this.trader.inventory.money = TOTAL_MONEY * 0.2;  // 20% to trader
 
         this.updateMoneyDistribution();
+
+        // Fixed total money in the economy
+        this.TOTAL_MONEY = 2000;  // Total money in the system
+        
+        // Population metrics
+        this.townPopulation = {
+            base: 50,
+            current: 50,
+            growthRate: 0.05,      // Reduced from 0.1
+            resourceConsumption: 2, // Increased from 1
+            minWealth: 0.3,        // Minimum wealth factor before severe decline
+            targetWealth: 0.4      // Target wealth factor for stable population
+        };
+        
+        this.villagePopulation = {
+            base: 30,
+            current: 30,
+            growthRate: 0.05,      // Reduced from 0.1
+            resourceConsumption: 1, // Kept at 1 (villagers consume less per capita)
+            minWealth: 0.3,        // Minimum wealth factor before severe decline
+            targetWealth: 0.4      // Target wealth factor for stable population
+        };
+
+        // Modified initial money distribution (now sums to TOTAL_MONEY)
+        this.townInventory.money = this.TOTAL_MONEY * 0.4;    // 40% to town
+        this.villageInventory.money = this.TOTAL_MONEY * 0.4; // 40% to village
+        this.trader.inventory.money = this.TOTAL_MONEY * 0.2;  // 20% to trader
+
+        // Add money verification interval
+        setInterval(() => this.verifyTotalMoney(), 5000);
+
+        // Add accounting tracking
+        this.townAccounting = {
+            wheatSales: 0,
+            toolPurchases: 0,
+            lastUpdate: Date.now(),
+            history: []
+        };
+        
+        this.villageAccounting = {
+            wheatSales: 0,
+            toolPurchases: 0,
+            lastUpdate: Date.now(),
+            history: []
+        };
+
+        this.setupAccountingLog();
     }
 
     setupEventListeners() {
@@ -131,28 +178,17 @@ class Simulation {
     }
 
     logTrade(wheatAmount, toolsAmount, wheatPrice, toolsPrice) {
-        const trade = {
-            timestamp: new Date().toLocaleTimeString(),
-            wheatAmount,
-            toolsAmount,
-            wheatPrice,
-            toolsPrice
-        };
-        this.tradeLog.unshift(trade);
-        if (this.tradeLog.length > this.maxLogEntries) {
-            this.tradeLog.pop();
+        // Instead of updating trade log, just log the transaction
+        const tradeValue = wheatAmount * wheatPrice;
+        const toolsValue = toolsAmount * toolsPrice;
+        
+        // Log the transaction in the accounting system
+        if (wheatAmount > 0) {
+            this.logTransaction('wheat', wheatAmount, wheatPrice, true);  // Town receives wheat
         }
-        this.updateTradeLog();
-    }
-
-    updateTradeLog() {
-        const logContent = document.getElementById('trade-log-content');
-        logContent.innerHTML = this.tradeLog.map(trade => `
-            <div class="trade-entry">
-                [${trade.timestamp}] Traded ${trade.wheatAmount.toFixed(1)} wheat at ${trade.wheatPrice.toFixed(2)} 
-                for ${trade.toolsAmount.toFixed(1)} tools at ${trade.toolsPrice.toFixed(2)}
-            </div>
-        `).join('');
+        if (toolsAmount > 0) {
+            this.logTransaction('tools', toolsAmount, toolsPrice, false); // Village receives tools
+        }
     }
 
     getRandomRange(min, max) {
@@ -167,7 +203,7 @@ class Simulation {
             (this.villageInventory.depletionRate * deltaTime));
 
         // Update all inventory displays
-        const elements = {
+        const inventoryElements = {
             'town-wheat': this.townInventory.wheat,
             'town-tools': this.townInventory.tools,
             'village-wheat': this.villageInventory.wheat,
@@ -175,7 +211,7 @@ class Simulation {
         };
 
         // Safe update of elements
-        Object.entries(elements).forEach(([id, value]) => {
+        Object.entries(inventoryElements).forEach(([id, value]) => {
             const element = document.getElementById(id);
             if (element) {
                 element.textContent = value.toFixed(1);
@@ -191,6 +227,30 @@ class Simulation {
         document.getElementById('tools-demand').value = toolsDemand;
 
         this.updatePrices();
+
+        // Population-based depletion
+        this.townInventory.wheat = Math.max(0, this.townInventory.wheat - 
+            (this.townInventory.depletionRate * deltaTime));
+        this.villageInventory.tools = Math.max(0, this.villageInventory.tools - 
+            (this.villageInventory.depletionRate * deltaTime));
+
+        // Update displays
+        const displayElements = {
+            'town-wheat': this.townInventory.wheat,
+            'town-tools': this.townInventory.tools,
+            'village-wheat': this.villageInventory.wheat,
+            'village-tools': this.villageInventory.tools,
+            'town-population': Math.floor(this.townPopulation.current),
+            'village-population': Math.floor(this.villagePopulation.current)
+        };
+
+        // Update UI elements
+        Object.entries(displayElements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = typeof value === 'number' ? value.toFixed(1) : value;
+            }
+        });
     }
 
     updateProduction(deltaTime) {
@@ -264,6 +324,13 @@ class Simulation {
 
             this.updateMoneyDistribution();
 
+            this.updatePopulation(deltaTime);
+            this.updateProduction(deltaTime);
+            this.updateInventories(deltaTime);
+            // ...rest of existing update code...
+
+            this.updateMoneyDistribution();
+            this.verifyTotalMoney();
         } catch (error) {
             console.error('Error in simulation update:', error);
         }
@@ -319,6 +386,13 @@ class Simulation {
             const tradeValue = villager.wheatAmount * wheatPrice;
             this.townInventory.money += tradeValue;
             this.villageInventory.money -= tradeValue;
+
+            // Log transactions for both parties
+            const wheatValue = villager.wheatAmount * wheatPrice;
+            const toolsValue = maxToolsPossible * toolsPrice;
+            
+            this.logTransaction('wheat', villager.wheatAmount, wheatPrice, true);  // Town receives wheat
+            this.logTransaction('tools', maxToolsPossible, toolsPrice, false);     // Village receives tools
         }
     }
 
@@ -387,14 +461,115 @@ class Simulation {
         gameLoop();
     }
 
-    setupTradeLog() {
-        const toggle = document.getElementById('trade-log-toggle');
-        toggle.addEventListener('click', () => {
-            const log = toggle.parentElement;
-            log.classList.toggle('collapsed');
-            toggle.querySelector('.toggle-icon').textContent = 
-                log.classList.contains('collapsed') ? '▼' : '▲';
-        });
+    setupUI() {
+        // Setup accounting panel toggle
+        const toggle = document.getElementById('accounting-log-toggle');
+        if (toggle) {
+            toggle.addEventListener('click', () => {
+                const panel = toggle.closest('.accounting-panel');
+                panel.classList.toggle('collapsed');
+                toggle.querySelector('.toggle-icon').textContent = 
+                    panel.classList.contains('collapsed') ? '▼' : '▲';
+            });
+        }
+    }
+
+    setupAccountingLog() {
+        const toggle = document.getElementById('accounting-log-toggle');
+        if (toggle) {
+            toggle.addEventListener('click', () => {
+                const log = toggle.parentElement;
+                log.classList.toggle('collapsed');
+                toggle.querySelector('.toggle-icon').textContent = 
+                    log.classList.contains('collapsed') ? '▼' : '▲';
+            });
+        }
+    }
+
+    logTransaction(type, amount, price, isTown) {
+        const accounting = isTown ? this.townAccounting : this.villageAccounting;
+        const currentTime = Date.now();
+        const timeElapsed = (currentTime - accounting.lastUpdate) / 1000;
+        
+        if (type === 'wheat') {
+            accounting.wheatSales += amount * price;
+        } else if (type === 'tools') {
+            accounting.toolPurchases += amount * price;
+        }
+
+        // Record history entry every minute
+        if (timeElapsed >= 60) {
+            accounting.history.unshift({
+                timestamp: new Date().toLocaleTimeString(),
+                wheatSales: accounting.wheatSales,
+                toolPurchases: accounting.toolPurchases,
+                netFlow: accounting.wheatSales - accounting.toolPurchases
+            });
+
+            // Keep last 10 entries
+            if (accounting.history.length > 10) {
+                accounting.history.pop();
+            }
+
+            // Reset current period
+            accounting.wheatSales = 0;
+            accounting.toolPurchases = 0;
+            accounting.lastUpdate = currentTime;
+        }
+
+        this.updateAccountingDisplay();
+    }
+
+    updateAccountingDisplay() {
+        const townContent = document.getElementById('town-accounting');
+        const villageContent = document.getElementById('village-accounting');
+
+        if (townContent) {
+            townContent.innerHTML = this.generateAccountingTable(this.townAccounting, true);
+        }
+        if (villageContent) {
+            villageContent.innerHTML = this.generateAccountingTable(this.villageAccounting, false);
+        }
+    }
+
+    generateAccountingTable(accounting, isTown) {
+        const title = isTown ? 'Town' : 'Village';
+        const currentPeriod = `
+            <div class="accounting-current">
+                <h4>Current Period</h4>
+                <table>
+                    <tr><td>${isTown ? 'Wheat Sales' : 'Wheat Exports'}:</td><td>+${accounting.wheatSales.toFixed(1)}</td></tr>
+                    <tr><td>${isTown ? 'Tool Costs' : 'Tool Imports'}:</td><td>-${accounting.toolPurchases.toFixed(1)}</td></tr>
+                    <tr class="net-flow"><td>Net Flow:</td><td class="${accounting.wheatSales - accounting.toolPurchases >= 0 ? 'positive' : 'negative'}">
+                        ${(accounting.wheatSales - accounting.toolPurchases).toFixed(1)}
+                    </td></tr>
+                </table>
+            </div>
+        `;
+
+        const history = accounting.history.length > 0 ? `
+            <div class="accounting-history">
+                <h4>History</h4>
+                <table>
+                    <tr>
+                        <th>Time</th>
+                        <th>${isTown ? 'Sales' : 'Exports'}</th>
+                        <th>${isTown ? 'Costs' : 'Imports'}</th>
+                        <th>Net</th>
+                    </tr>
+                    ${accounting.history.map(entry => `
+                        <tr>
+                            <td>${entry.timestamp}</td>
+                            <td>+${entry.wheatSales.toFixed(1)}</td>
+                            <td>-${entry.toolPurchases.toFixed(1)}</td>
+                            <td class="${entry.netFlow >= 0 ? 'positive' : 'negative'}">${entry.netFlow.toFixed(1)}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        ` : '';
+
+        return `<h3>${title} Accounting</h3>${currentPeriod}${history}`;
     }
 
     updateLocationInfo() {
@@ -403,23 +578,20 @@ class Simulation {
 
         townInfo.innerHTML = `
             <strong>Town Market</strong><br>
+            Population: ${Math.floor(this.townPopulation.current)} <span id="town-population-trend"></span><br>
             Money: ${this.townInventory.money.toFixed(1)}<br>
             Wheat: ${this.townInventory.wheat.toFixed(1)}<br>
             Tools: ${this.townInventory.tools.toFixed(1)}<br>
-            Prices:<br>
-            Wheat Buy: ${(parseFloat(document.getElementById('wheat-price').textContent) * 1.2).toFixed(2)}<br>
-            Wheat Sell: ${document.getElementById('wheat-price').textContent}
+            Depletion: ${this.townInventory.depletionRate.toFixed(2)}/s
         `;
 
         villageInfo.innerHTML = `
             <strong>Village Market</strong><br>
+            Population: ${Math.floor(this.villagePopulation.current)} <span id="village-population-trend"></span><br>
             Money: ${this.villageInventory.money.toFixed(1)}<br>
             Wheat: ${this.villageInventory.wheat.toFixed(1)}<br>
-            Market: ${this.villageInventory.wheatMarketOpen ? 'OPEN' : 'CLOSED'} (Reserve: ${this.villageInventory.wheatReserve})<br>
             Tools: ${this.villageInventory.tools.toFixed(1)}<br>
-            Prices:<br>
-            Tools Buy: ${(parseFloat(document.getElementById('tools-price').textContent) * 1.2).toFixed(2)}<br>
-            Tools Sell: ${document.getElementById('tools-price').textContent}
+            Depletion: ${this.villageInventory.depletionRate.toFixed(2)}/s
         `;
     }
 
@@ -469,6 +641,149 @@ class Simulation {
                 </div>
             </div>
         `).join('');
+    }
+
+    verifyTotalMoney() {
+        const currentTotal = (
+            this.townInventory.money +
+            this.villageInventory.money +
+            this.trader.inventory.money +
+            this.villagers.reduce((sum, v) => sum + v.money, 0)
+        );
+
+        if (Math.abs(currentTotal - this.TOTAL_MONEY) > 0.01) {
+            console.error(`Money leak detected! Expected: ${this.TOTAL_MONEY}, Found: ${currentTotal}`);
+            // Adjust to maintain total (proportionally)
+            const ratio = this.TOTAL_MONEY / currentTotal;
+            this.townInventory.money *= ratio;
+            this.villageInventory.money *= ratio;
+            this.trader.inventory.money *= ratio;
+            this.villagers.forEach(v => v.money *= ratio);
+        }
+    }
+
+    updatePopulation(deltaTime) {
+        // Calculate economic health factors
+        const totalMoney = this.TOTAL_MONEY;
+        const townWealthFactor = this.townInventory.money / totalMoney;
+        const villageWealthFactor = this.villageInventory.money / totalMoney;
+
+        // Calculate resource factors
+        const townResourceFactor = Math.min(1, this.townInventory.wheat / (this.townPopulation.current * 2));
+        const villageResourceFactor = Math.min(1, this.villageInventory.tools / this.villagePopulation.current);
+
+        // Calculate population changes with more severe penalties
+        const townPopChange = this.calculatePopulationChange(
+            this.townPopulation,
+            townWealthFactor,
+            townResourceFactor,
+            deltaTime
+        );
+
+        const villagePopChange = this.calculatePopulationChange(
+            this.villagePopulation,
+            villageWealthFactor,
+            villageResourceFactor,
+            deltaTime
+        );
+
+        // Update populations with minimum thresholds
+        this.townPopulation.current = Math.max(
+            this.townPopulation.base * 0.1,
+            Math.min(
+                this.townPopulation.base * 3, // Maximum population cap
+                this.townPopulation.current + townPopChange
+            )
+        );
+
+        this.villagePopulation.current = Math.max(
+            this.villagePopulation.base * 0.1,
+            Math.min(
+                this.villagePopulation.base * 3, // Maximum population cap
+                this.villagePopulation.current + villagePopChange
+            )
+        );
+
+        // Update depletion rates based on population and wealth
+        this.updateDepletionRates();
+        
+        // Update population trend indicators
+        this.updatePopulationTrends(townPopChange, villagePopChange);
+    }
+
+    calculatePopulationChange(population, wealthFactor, resourceFactor, deltaTime) {
+        // Calculate wealth impact
+        const wealthImpact = (wealthFactor - population.targetWealth) * 2;
+        
+        // Calculate severe decline if below minimum wealth
+        if (wealthFactor < population.minWealth) {
+            return -population.current * 0.1 * deltaTime; // Rapid decline
+        }
+
+        // Calculate normal population change
+        const change = population.current * population.growthRate * (
+            wealthImpact +         // Wealth effect
+            resourceFactor - 1 +   // Resource availability effect
+            (Math.random() * 0.1 - 0.05) // Random fluctuation
+        ) * deltaTime;
+
+        return change;
+    }
+
+    updateDepletionRates() {
+        // Town depletion scales with population and inverse of wealth
+        this.townInventory.depletionRate = (
+            this.townPopulation.current * 
+            this.townPopulation.resourceConsumption * 
+            (1 + (0.4 - this.townInventory.money / this.TOTAL_MONEY)) * 
+            0.01
+        );
+        
+        // Village depletion scales similarly
+        this.villageInventory.depletionRate = (
+            this.villagePopulation.current * 
+            this.villagePopulation.resourceConsumption * 
+            (1 + (0.4 - this.villageInventory.money / this.TOTAL_MONEY)) * 
+            0.01
+        );
+    }
+
+    updatePopulationTrends(townChange, villageChange) {
+        const townTrend = document.getElementById('town-population-trend');
+        const villageTrend = document.getElementById('village-population-trend');
+        
+        if (townTrend) {
+            townTrend.textContent = townChange > 0 ? '↑' : townChange < 0 ? '↓' : '→';
+            townTrend.style.color = townChange > 0 ? 'green' : townChange < 0 ? 'red' : 'gray';
+        }
+        
+        if (villageTrend) {
+            villageTrend.textContent = villageChange > 0 ? '↑' : villageChange < 0 ? '↓' : '→';
+            villageTrend.style.color = villageChange > 0 ? 'green' : villageChange < 0 ? 'red' : 'gray';
+        }
+    }
+
+    updateLocationInfo() {
+        const townInfo = document.getElementById('town-info');
+        const villageInfo = document.getElementById('village-info');
+
+        townInfo.innerHTML = `
+            <strong>Town Market</strong><br>
+            Population: ${Math.floor(this.townPopulation.current)} <span id="town-population-trend"></span><br>
+            Money: ${this.townInventory.money.toFixed(1)}<br>
+            Wheat: ${this.townInventory.wheat.toFixed(1)}<br>
+            Tools: ${this.townInventory.tools.toFixed(1)}<br>
+            Depletion: ${this.townInventory.depletionRate.toFixed(2)}/s
+        `;
+
+        villageInfo.innerHTML = `
+            <strong>Village Market</strong><br>
+            Population: ${Math.floor(this.villagePopulation.current)} <span id="village-population-trend"></span><br>
+            Money: ${this.villageInventory.money.toFixed(1)}<br>
+            Wheat: ${this.villageInventory.wheat.toFixed(1)}<br>
+            Tools: ${this.villageInventory.tools.toFixed(1)}<br>
+            Depletion: ${this.villageInventory.depletionRate.toFixed(2)}/s
+        `;
     }
 }
 

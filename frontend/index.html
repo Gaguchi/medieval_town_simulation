@@ -10,6 +10,9 @@
     <div class="container">
         <h1>Medieval Town Simulation</h1>
         
+        <!-- Add this button inside the container div, before the simulation-layout -->
+        <button class="combat-button" onclick="window.combatScene.show()">Start Combat</button>
+
         <div class="simulation-layout">
             <!-- Add new money distribution chart -->
             <div class="money-distribution">
@@ -22,15 +25,17 @@
                 <summary>Advanced Market Controls</summary>
                 <div class="market-controls">
                     <div class="entity inventory-status">
-                        <h3>Current Inventories</h3>
+                        <h3>Current Status</h3>
                         <div class="inventory-row">
                             <div>
                                 <strong>Town:</strong>
+                                <p>Population: <span id="town-population">50</span></p>
                                 <p>Wheat: <span id="town-wheat">50</span></p>
                                 <p>Tools: <span id="town-tools">0</span></p>
                             </div>
                             <div>
                                 <strong>Village:</strong>
+                                <p>Population: <span id="village-population">30</span></p>
                                 <p>Wheat: <span id="village-wheat">0</span></p>
                                 <p>Tools: <span id="village-tools">50</span></p>
                             </div>
@@ -78,17 +83,20 @@
                 <div class="location-info village-info" id="village-info"></div>
             </div>
 
+            <!-- Replace the trade-log div with these accounting panels -->
             <div class="right-panel">
-                <div class="trade-log collapsed">
-                    <div class="trade-log-header" id="trade-log-toggle">
-                        <h3>Trade History</h3>
+                <div class="accounting-panel">
+                    <div class="accounting-header" id="accounting-log-toggle">
+                        <h3>Economic Reports</h3>
                         <span class="toggle-icon">▼</span>
                     </div>
-                    <div id="trade-log-content"></div>
+                    <div id="town-accounting"></div>
+                    <div id="village-accounting"></div>
                 </div>
             </div>
         </div>
     </div>
     <script src="simulation.js"></script>
+    <script src="combat.js"></script>
 </body>
 </html>
