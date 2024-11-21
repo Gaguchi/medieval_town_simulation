@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from models import Database, Transaction
-from pydantic import BaseModel
+from models import MarketSimulation, TradeEvent
+from typing import Dict
+from fastapi.websockets import WebSocket
+import json
+import asyncio
 
 app = FastAPI()
-db = Database()
+simulation = MarketSimulation()
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,28 +18,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class MarketState(BaseModel):
-    wheat_demand: float
-    wheat_supply: float
-    tools_demand: float
-    tools_supply: float
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            # Update simulation and send state
+            simulation.update()
+            state = simulation.get_state()
+            await websocket.send_json(state)
+            await asyncio.sleep(0.1)  # 100ms update interval
+    except Exception as e:
+        print(f"WebSocket error: {e}")
 
-def calculate_price(demand: float, supply: float, base_price: float = 10.0):
-    # More dynamic price calculation
-    demand_factor = float(demand) / 50.0  # Normalize to 1.0 at middle demand
-    supply_factor = float(supply) / 50.0
-    
-    # Calculate price with increased volatility
-    price = base_price * (demand_factor / supply_factor if supply_factor > 0 else 2)
-    
-    # Add minimum and maximum bounds
-    return min(max(price, base_price * 0.2), base_price * 5.0)
+@app.post("/trade")
+async def execute_trade(trade: Dict):
+    result = simulation.handle_trade(trade)
+    return result
 
-@app.post("/update_market")
-async def update_market(state: MarketState):
-    wheat_price = calculate_price(state.wheat_demand, state.wheat_supply)
-    tools_price = calculate_price(state.tools_demand, state.tools_supply)
-    return {"wheat_price": wheat_price, "tools_price": tools_price}
+@app.get("/state")
+async def get_state():
+    return simulation.get_state()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8001)
